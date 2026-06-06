@@ -7,6 +7,9 @@ import json
 import requests
 from dotenv import load_dotenv
 
+from app.schemas import IngestRequest, IngestResponse
+from app.services.threat_service import process_threat_log
+
 load_dotenv()
 
 app = FastAPI(
@@ -19,14 +22,7 @@ app = FastAPI(
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Simple Pydantic models for validation
-class LogPayload(BaseModel):
-    node_id: str = Field(..., example="server-cluster-04")
-    service: str = Field(..., example="ssh-daemon")
-    event: str = Field(..., example="Failed login password attempt for root")
-    severity: str = Field(..., example="critical")
-    source_ip: Optional[str] = Field("0.0.0.0", example="185.122.2.4")
-
+# Simple Pydantic models for validation of AI summaries and RAG
 class IncidentSummaryRequest(BaseModel):
     incident_id: str
     category: str
@@ -37,47 +33,23 @@ class ChatQueryRequest(BaseModel):
     query: str
     organization_id: str
 
-# Ingestion endpoint with heuristic rule parsing
-@app.post("/api/v1/ingest", tags=["Ingestion"])
-async def ingest_log(payload: LogPayload, authorization: Optional[str] = Header(None)):
-    # Verify Bearer Token in production
-    # if not authorization or not authorization.startswith("Bearer "):
-    #     raise HTTPException(status_code=401, detail="Invalid or missing API ingestion token")
-    
-    # 1. Rule Heuristic: Check for common attack signatures
-    threat_detected = False
-    threat_type = None
-    event_lower = payload.event.lower()
-    
-    if "select" in event_lower and "from" in event_lower or "union" in event_lower or "' or '" in event_lower:
-        threat_detected = True
-        threat_type = "SQL Injection Attempt"
-    elif "failed" in event_lower and "password" in event_lower or "login failure" in event_lower:
-        threat_detected = True
-        threat_type = "Brute Force Attempt"
-    elif "flood" in event_lower or "syn_flood" in event_lower or "ddos" in event_lower:
-        threat_detected = True
-        threat_type = "DDoS Volumetric Target"
-    elif "etc/passwd" in event_lower or "../../" in event_lower:
-        threat_detected = True
-        threat_type = "Directory Traversal"
-
-    # 2. Mock persistence / indexing (Simulating writing to ChromaDB)
-    # In production, you would embed the event using LangChain and save to ChromaDB:
-    # vector_db.add_texts([f"Service: {payload.service} - Event: {payload.event}"], metadatas=[...])
-    
-    return {
-        "status": "processed",
-        "timestamp": datetime.utcnow().isoformat(),
-        "threat_detected": threat_detected,
-        "threat_type": threat_type,
-        "payload_received": {
-            "nodeId": payload.node_id,
-            "service": payload.service,
-            "severity": payload.severity,
-            "sourceIp": payload.source_ip,
-        }
-    }
+# Ingestion endpoint
+@app.post("/api/v1/ingest", response_model=IngestResponse, tags=["Ingestion"])
+async def ingest_log(payload: IngestRequest):
+    try:
+        result = process_threat_log(
+            source=payload.source,
+            ip=payload.ip,
+            message=payload.message
+        )
+        return IngestResponse(
+            detected=result["detected"],
+            attack_type=result["attack_type"],
+            severity=result["severity"],
+            incident_created=result["incident_created"]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to process ingestion: {str(e)}")
 
 # AI Threat Summarizer endpoint (FastAPI -> OpenRouter)
 @app.post("/api/v1/summarize", tags=["AI Operations"])
@@ -132,11 +104,6 @@ async def summarize_incident(request: IncidentSummaryRequest):
 # RAG logs querying endpoint (FastAPI -> ChromaDB + LangChain -> OpenRouter)
 @app.post("/api/v1/chat", tags=["AI Operations"])
 async def query_rag_chat(request: ChatQueryRequest):
-    # ChromaDB Vector Store Retrieval Mock (Simulating LangChain + ChromaDB Retrieval QA Chain)
-    # In production:
-    # docs = db.similarity_search(request.query, filter={"org_id": request.organization_id})
-    # context = "\n".join([d.page_content for d in docs])
-    
     # 1. Local context retrieval search
     context = ""
     query_lower = request.query.lower()
@@ -189,7 +156,7 @@ async def query_rag_chat(request: ChatQueryRequest):
 
 @app.get("/health", tags=["Utilities"])
 def health_check():
-    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+    return {"status": "healthy"}
 
 if __name__ == "__main__":
     import uvicorn
