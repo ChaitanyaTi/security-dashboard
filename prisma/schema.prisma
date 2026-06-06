@@ -1,0 +1,74 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id               String            @id // Maps directly to Clerk's 'org_...' ID
+  name             String
+  region           String            @default("us-east-1")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  users            User[]
+  threats          ThreatEvent[]
+  incidents        Incident[]
+  complianceChecks ComplianceCheck[]
+}
+
+model User {
+  id             String       @id // Maps directly to Clerk's 'user_...' ID
+  email          String       @unique
+  name           String?
+  role           String       @default("analyst") // "admin" | "analyst"
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model ThreatEvent {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  timestamp      DateTime     @default(now())
+  sourceIp       String
+  targetNode     String
+  threatType     String
+  severity       String       // "critical" | "high" | "medium" | "low" | "info"
+  status         String       @default("active") // "active" | "mitigated" | "whitelisted"
+  payload        String       @db.Text
+  createdAt      DateTime     @default(now())
+}
+
+model Incident {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  category       String
+  threatCount    Int          @default(1)
+  severity       String       // "critical" | "high" | "medium"
+  status         String       @default("open") // "open" | "investigating" | "resolved"
+  assignedTo     String       @default("Unassigned")
+  description    String       @db.Text
+  createdTime    DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model ComplianceCheck {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  policy         String
+  category       String
+  status         String       // "compliant" | "warning" | "failed"
+  checkedDate    DateTime     @default(now())
+  remediation    String       @db.Text
+}
