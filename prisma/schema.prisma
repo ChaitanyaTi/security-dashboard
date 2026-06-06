@@ -11,40 +11,53 @@ datasource db {
 }
 
 model Organization {
-  id               String            @id // Maps directly to Clerk's 'org_...' ID
+  id               String            @id @default(uuid())
+  clerkOrgId       String            @unique
   name             String
-  region           String            @default("us-east-1")
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   users            User[]
-  threats          ThreatEvent[]
+  logSources       LogSource[]
+  threatEvents     ThreatEvent[]
   incidents        Incident[]
   complianceChecks ComplianceCheck[]
 }
 
 model User {
-  id             String       @id // Maps directly to Clerk's 'user_...' ID
+  id             String       @id @default(uuid())
+  clerkUserId    String       @unique
   email          String       @unique
-  name           String?
-  role           String       @default("analyst") // "admin" | "analyst"
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+}
+
+model LogSource {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  apiKey         String       @unique
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
 }
 
 model ThreatEvent {
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  timestamp      DateTime     @default(now())
   sourceIp       String
-  targetNode     String
-  threatType     String
-  severity       String       // "critical" | "high" | "medium" | "low" | "info"
-  status         String       @default("active") // "active" | "mitigated" | "whitelisted"
-  payload        String       @db.Text
+  target         String
+  severity       String
+  description    String       @db.Text
+  rawPayload     String       @db.Text
   createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
 }
 
 model Incident {
@@ -52,23 +65,22 @@ model Incident {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   title          String
-  category       String
-  threatCount    Int          @default(1)
-  severity       String       // "critical" | "high" | "medium"
-  status         String       @default("open") // "open" | "investigating" | "resolved"
+  status         String       @default("open")
   assignedTo     String       @default("Unassigned")
-  description    String       @db.Text
-  createdTime    DateTime     @default(now())
+  createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
 }
 
 model ComplianceCheck {
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  policy         String
-  category       String
-  status         String       // "compliant" | "warning" | "failed"
-  checkedDate    DateTime     @default(now())
-  remediation    String       @db.Text
+  framework      String
+  score          Int
+  status         String
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
 }
