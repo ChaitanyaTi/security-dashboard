@@ -11,26 +11,45 @@ datasource db {
 }
 
 model Organization {
-  id               String            @id @default(uuid())
-  clerkOrgId       String            @unique
-  name             String
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  users            User[]
-  logSources       LogSource[]
-  threatEvents     ThreatEvent[]
-  incidents        Incident[]
-  complianceChecks ComplianceCheck[]
+  id                   String                  @id @default(uuid())
+  clerkOrgId           String                  @unique
+  name                 String
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  users                User[]
+  logSources           LogSource[]
+  threatEvents         ThreatEvent[]
+  incidents            Incident[]
+  complianceChecks     ComplianceCheck[]
+  incidentComments     IncidentComment[]
+  incidentActivityLogs IncidentActivityLog[]
+  ingestionHistories   IngestionHistory[]
+  documents            Document[]
+  chatSessions         ChatSession[]
+  reports              Report[]
+  auditLogs            AuditLog[]
+  notificationPreference NotificationPreference?
+  roles                OrganizationRole[]
+  cases                Case[]
+  evidence             Evidence[]
+  notificationLogs     NotificationLog[]
+  slackWebhookUrl      String?                 @db.Text
+  playbooks            Playbook[]
+  automationExecutions AutomationExecution[]
+  savedHunts           SavedHunt[]
+  simulationRuns       SimulationRun[]
 }
 
 model User {
-  id             String       @id @default(uuid())
-  clerkUserId    String       @unique
-  email          String       @unique
+  id             String             @id @default(uuid())
+  clerkUserId    String             @unique
+  email          String             @unique
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  lastLoginAt    DateTime?
+  roles          OrganizationRole[]
 
   @@index([organizationId])
 }
@@ -44,6 +63,7 @@ model LogSource {
   createdAt      DateTime     @default(now())
 
   @@index([organizationId])
+  @@index([organizationId, name])
 }
 
 model ThreatEvent {
@@ -56,21 +76,36 @@ model ThreatEvent {
   description    String       @db.Text
   rawPayload     String       @db.Text
   createdAt      DateTime     @default(now())
+  status         String       @default("New")
+  assignedTo     String       @default("Unassigned")
+  aiSummary      String?      @db.Text
+  incidentId     String?
+  incident       Incident?    @relation(fields: [incidentId], references: [id], onDelete: SetNull)
 
-  @@index([organizationId])
+  @@index([organizationId, createdAt])
+  @@index([incidentId])
 }
 
 model Incident {
-  id             String       @id @default(uuid())
+  id             String                @id @default(uuid())
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   title          String
-  status         String       @default("open")
-  assignedTo     String       @default("Unassigned")
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  description    String                @default("") @db.Text
+  severity       String                @default("MEDIUM")
+  status         String                @default("open")
+  assignedTo     String                @default("Unassigned")
+  aiSummary      String?               @db.Text
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  threatEvents   ThreatEvent[]
+  comments       IncidentComment[]
+  activityLogs   IncidentActivityLog[]
+  caseId         String?
+  case           Case?                 @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  evidence       Evidence[]
 
-  @@index([organizationId])
+  @@index([organizationId, createdAt])
 }
 
 model ComplianceCheck {
@@ -78,9 +113,271 @@ model ComplianceCheck {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   framework      String
+  description    String       @default("") @db.Text
   score          Int
   status         String
   createdAt      DateTime     @default(now())
 
+  @@index([organizationId, createdAt(sort: Desc)])
+}
+
+model IncidentComment {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  incidentId     String
+  incident       Incident     @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  userName       String
+  content        String       @db.Text
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([incidentId, createdAt])
+}
+
+model IncidentActivityLog {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  incidentId     String
+  incident       Incident     @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  activityType   String       // e.g. "created", "assigned", "status_change", "resolved"
+  description    String       @db.Text
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([incidentId])
+}
+
+model IngestionHistory {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fileName       String
+  fileSize       String
+  eventsCount    Int
+  threatsCount   Int
+  incidentsCount Int
+  status         String       // "success", "failed"
+  createdAt      DateTime     @default(now())
+
   @@index([organizationId])
 }
+
+model Document {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  fileType       String
+  fileSize       String
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+}
+
+model ChatSession {
+  id             String        @id @default(uuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String        @default("New Session")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  messages       ChatMessage[]
+
+  @@index([organizationId])
+}
+
+model ChatMessage {
+  id          String      @id @default(uuid())
+  sessionId   String
+  chatSession ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender      String      // "user" or "bot"
+  text        String      @db.Text
+  sources     String?     @db.Text // JSON string representing list of sources
+  diagnostics String?     @db.Text // JSON string of metrics
+  createdAt   DateTime    @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+model Report {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           String       // "threat_intel" | "incident_response" | "compliance" | "executive_summary"
+  title          String
+  generatedBy    String
+  createdAt      DateTime     @default(now())
+  metadata       String       @db.Text // JSON metadata payload of calculated statistics
+
+  @@index([organizationId])
+}
+
+model OrganizationRole {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String       @default("Viewer") // "Admin" | "Analyst" | "Viewer"
+  status         String       @default("Active") // "Active" | "Disabled"
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?
+  userEmail      String
+  action         String
+  metadata       Json
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+}
+
+model NotificationPreference {
+  id                   String       @id @default(uuid())
+  organizationId       String       @unique
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  criticalThreatAlerts Boolean      @default(true)
+  incidentAlerts       Boolean      @default(true)
+  complianceAlerts     Boolean      @default(true)
+  weeklyReports        Boolean      @default(true)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+}
+
+model SecurityLog {
+  id             String   @id @default(uuid())
+  organizationId String?
+  userId         String?
+  userEmail      String?
+  ipAddress      String?
+  eventType      String
+  details        Json
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, eventType, createdAt(sort: Desc)])
+}
+
+model Case {
+  id             String        @id @default(uuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  description    String        @db.Text
+  status         String        @default("open") // "open" | "investigating" | "closed"
+  severity       String        @default("MEDIUM")
+  assignedTo     String        @default("Unassigned")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  incidents      Incident[]
+  evidence       Evidence[]
+
+  @@index([organizationId, createdAt])
+}
+
+model Evidence {
+  id             String        @id @default(uuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fileName       String
+  fileType       String
+  fileSize       String
+  storagePath    String        @db.Text
+  caseId         String?
+  case           Case?         @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  incidentId     String?
+  incident       Incident?     @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId])
+  @@index([caseId])
+  @@index([incidentId])
+}
+
+model NotificationLog {
+  id             String        @id @default(uuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           String        // "critical_threat" | "incident_created" | "incident_resolved" | "compliance_failure"
+  channel        String        // "in_app" | "email" | "slack"
+  message        String        @db.Text
+  status         String        @default("sent") // "sent" | "failed"
+  read           Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId, createdAt])
+}
+
+model Playbook {
+  id             String                @id @default(uuid())
+  organizationId String
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  description    String                @db.Text
+  enabled        Boolean               @default(true)
+  triggerType    String                // "threat_detected" | "incident_created"
+  conditions     Json                  // e.g., { "severity": ["HIGH", "CRITICAL"] }
+  actions        Json                  // Flow graph nodes/edges JSON
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  executions     AutomationExecution[]
+
+  @@index([organizationId, createdAt])
+}
+
+model AutomationExecution {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  playbookId     String
+  playbook       Playbook     @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  eventId        String?      // Reference to the ThreatEvent ID
+  status         String       // "success" | "failed" | "partial"
+  message        String       @db.Text
+  startedAt      DateTime     @default(now())
+  completedAt    DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([playbookId])
+}
+
+model SavedHunt {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  query          String       @db.Text
+  description    String?      @db.Text
+  createdBy      String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, createdAt])
+}
+
+model SimulationRun {
+  id                 String       @id @default(uuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  attackType         String
+  severity           String
+  status             String       @default("Pending")
+  eventsGenerated    Int          @default(0)
+  incidentsGenerated Int          @default(0)
+  startedAt          DateTime     @default(now())
+  completedAt        DateTime?
+
+  @@index([organizationId, startedAt])
+}
+

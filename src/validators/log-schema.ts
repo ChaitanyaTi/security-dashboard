@@ -13,7 +13,6 @@ export interface LogIngestPayload {
   targetNode?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function validateLogPayload(data: any): { success: boolean; data?: LogIngestPayload; error?: string } {
   if (!data || typeof data !== "object") {
     return { success: false, error: "Payload must be a JSON object" };
@@ -44,7 +43,6 @@ export function validateLogPayload(data: any): { success: boolean; data?: LogIng
       nodeId: nodeId.trim(),
       service: service.trim(),
       event: event.trim(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       severity: severity.toLowerCase() as any,
       timestamp: typeof timestamp === "string" ? timestamp : new Date().toISOString(),
       sourceIp: typeof sourceIp === "string" ? sourceIp : "0.0.0.0",

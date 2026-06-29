@@ -5,6 +5,7 @@ class IngestRequest(BaseModel):
     source: str
     ip: str
     message: str
+    apiKey: Optional[str] = None
 
 class IngestResponse(BaseModel):
     detected: bool

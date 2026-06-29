@@ -1,542 +1,747 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { 
-  ArrowRight, Shield, Activity, Terminal, Cpu, Lock, 
-  Globe, MessageSquare, Layers, CheckCircle2, ShieldCheck,
-  Server, Zap, ShieldAlert, AlertCircle, Bot
+  ArrowRight, Shield, Activity, 
+  Globe, Cpu, Play, X, ChevronRight
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { motion, AnimatePresence } from "framer-motion";
+import { CinematicBackground } from "@/components/ui/CinematicBackground";
 
 export default function LandingPage() {
-  // Live ticking stats
-  const [threatsCount, setThreatsCount] = useState(1248390);
-  const [logsCount, setLogsCount] = useState(12842903110);
-  const [activeTab, setActiveTab] = useState<"threats" | "chat" | "compliance">("threats");
+  const [activeWorkspace, setActiveWorkspace] = useState<"map" | "sim" | "copilot">("map");
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
+  const [scanStatus, setScanStatus] = useState<"idle" | "running" | "complete">("idle");
+  const [scanLogs, setScanLogs] = useState<string[]>([]);
+  const terminalBottomRef = useRef<HTMLDivElement>(null);
 
-  // Animate statistics counters
+  // Ticking telemetry headers
+  const [threatsPrevented, setThreatsPrevented] = useState(482931);
+  const [ingestRate, setIngestRate] = useState(1480);
+
   useEffect(() => {
-    // Ticking threats (adds 1-3 threats every 1.5 seconds)
     const threatsInterval = setInterval(() => {
-      setThreatsCount((prev) => prev + Math.floor(Math.random() * 3) + 1);
-    }, 1500);
+      setThreatsPrevented(prev => prev + Math.floor(Math.random() * 2) + 1);
+    }, 2000);
 
-    // Ticking logs (adds 800-2000 logs every 0.3 seconds)
-    const logsInterval = setInterval(() => {
-      setLogsCount((prev) => prev + Math.floor(Math.random() * 1200) + 800);
-    }, 300);
+    const ingestInterval = setInterval(() => {
+      setIngestRate(prev => {
+        const diff = Math.floor(Math.random() * 21) - 10;
+        return Math.max(1350, Math.min(1600, prev + diff));
+      });
+    }, 1200);
 
     return () => {
       clearInterval(threatsInterval);
-      clearInterval(logsInterval);
+      clearInterval(ingestInterval);
     };
   }, []);
 
-  // Format numbers with commas
-  const formatNumber = (num: number) => {
-    return num.toLocaleString();
+  // Run mock vulnerability scan sequence
+  const startDiagnosticScan = () => {
+    if (scanStatus !== "idle") return;
+    setScanStatus("running");
+    setScanLogs([]);
+
+    const steps = [
+      { text: "Initializing Aegis SOC Daemon (v19.4.2)...", delay: 300 },
+      { text: "Binding log collector sockets to port 514 [SYSLOG]...", delay: 700 },
+      { text: "Matching ingest streams with MITRE ATT&CK Matrix v14...", delay: 1200 },
+      { text: "[!] WARNING: Detected potential brute-force attempt from IP 185.220.101.4", delay: 1800 },
+      { text: "Triggering Playbook: AUTONOMIC_CONTAIN_SSH_BRUTE...", delay: 2400 },
+      { text: "Playbook Action: Blocked IP 185.220.101.4 on Edge Firewall.", delay: 3000 },
+      { text: "Evaluating compliance score with SOC2 Framework...", delay: 3600 },
+      { text: "[+] Compliance evaluation complete: 94.8% passed.", delay: 4100 },
+      { text: "[SUCCESS] SOC operational workspace fully secured. 0 active leaks.", delay: 4700 }
+    ];
+
+    steps.forEach((step, index) => {
+      setTimeout(() => {
+        setScanLogs(prev => [...prev, step.text]);
+        if (index === steps.length - 1) {
+          setScanStatus("complete");
+        }
+      }, step.delay);
+    });
   };
 
+  useEffect(() => {
+    if (terminalBottomRef.current) {
+      terminalBottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [scanLogs]);
+
+  // Removed unused marqueeLogos
+
   return (
-    <div className="relative min-h-screen bg-background text-foreground overflow-hidden">
-      {/* Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_80%,transparent_100%)] pointer-events-none" />
+    <div className="relative min-h-screen bg-background text-foreground overflow-hidden selection:bg-cyber-blue/30 selection:text-white font-sans cyber-grid-dots">
+      {/* Cinematic background systems */}
+      <CinematicBackground />
 
-      {/* Radial glows */}
-      <div className="absolute top-[-10%] left-[10%] w-[35rem] h-[35rem] bg-cyber-blue/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-[15%] right-[-5%] w-[30rem] h-[30rem] bg-cyber-green/5 rounded-full blur-[100px] pointer-events-none" />
-
-      {/* Header */}
-      <header className="relative border-b border-border bg-background/40 backdrop-blur-md z-30">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+      {/* Global Header */}
+      <header className="relative border-b border-border bg-[#030712]/30 backdrop-blur-md z-30">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-cyber-blue/10 border border-cyber-blue/30 text-cyber-blue shadow-[0_0_12px_rgba(6,182,212,0.15)]">
-              <Shield className="w-4 h-4" />
+            <div className="p-1.5 rounded-lg bg-cyber-blue/10 border border-cyber-blue/30 text-cyber-blue shadow-[0_0_15px_rgba(0,229,255,0.1)]">
+              <Shield className="w-4.5 h-4.5" />
             </div>
-            <span className="font-semibold text-sm tracking-wider">
+            <span className="font-heading font-bold text-sm tracking-wider uppercase text-white">
               AEGIS<span className="text-cyber-blue">SOC</span>
             </span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-6 text-xs text-muted-foreground">
-            <a href="#features" className="hover:text-foreground transition-colors">Platform</a>
-            <a href="#mockup" className="hover:text-foreground transition-colors">Console</a>
-            <a href="#trust" className="hover:text-foreground transition-colors">Security</a>
-            <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
+          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold text-muted-foreground font-mono tracking-wide">
+            <Link href="/overview" className="hover:text-cyber-blue transition-colors">DASHBOARD</Link>
+            <Link href="/threat-map" className="hover:text-cyber-blue transition-colors">GEOGRAPHIC MAP</Link>
+            <Link href="/soc" className="hover:text-cyber-blue transition-colors">SOC COMMAND</Link>
+            <Link href="/lab" className="hover:text-cyber-blue transition-colors">CYBER RANGE</Link>
+            <Link href="/chat" className="hover:text-cyber-blue transition-colors">COPILOT AI</Link>
           </nav>
 
           <div className="flex items-center gap-3">
             <Link 
               href="/sign-in" 
-              className="text-xs font-medium hover:text-cyber-blue transition-colors px-3 py-1.5"
+              className="text-xs font-mono font-semibold hover:text-white transition-colors px-3 py-1.5 text-muted-foreground"
             >
-              Sign In
+              SIGN_IN
             </Link>
             <Link 
               href="/overview"
-              className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-[0_0_15px_rgba(6,182,212,0.1)] hover:opacity-90 transition-opacity border border-primary/20"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-cyber-blue/10 border border-cyber-blue/40 px-5 text-xs font-bold text-cyber-blue shadow-[0_0_20px_rgba(0,229,255,0.05)] hover:bg-cyber-blue/20 transition-all font-mono uppercase tracking-wider"
             >
-              Go to App
+              LAUNCH COMMAND
             </Link>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <main className="relative max-w-7xl mx-auto px-6 pt-12 pb-16 z-20">
-        <div className="text-center space-y-6 max-w-4xl mx-auto">
-          {/* Release Badge */}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyber-blue/10 border border-cyber-blue/20 text-[10px] font-semibold text-cyber-blue tracking-wider uppercase">
-            <Zap className="w-3 h-3 text-cyber-blue animate-pulse" />
-            <span>AI-Powered Multi-Tenant Security Platform</span>
-          </div>
-
-          {/* Heading */}
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.08] text-foreground">
-            Autonomous Threat Ingestion &
-            <span className="block mt-1.5 bg-gradient-to-r from-cyber-blue via-cyber-cyan to-cyber-green bg-clip-text text-transparent filter drop-shadow-[0_0_20px_rgba(6,182,212,0.15)]">
-              Agentic RAG Log Auditing
+      <main className="relative max-w-7xl mx-auto px-6 pt-20 pb-20 z-20 space-y-24">
+        <motion.div 
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.12,
+                delayChildren: 0.1
+              }
+            }
+          }}
+          className="text-center space-y-8 max-w-5xl mx-auto"
+        >
+          {/* Cyber Status Badge */}
+          <motion.div 
+            variants={{
+              hidden: { opacity: 0, y: -10 },
+              visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+            }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyber-blue/5 border border-cyber-blue/20 text-[9px] font-mono font-bold text-cyber-blue tracking-wider uppercase"
+          >
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-blue opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyber-blue"></span>
             </span>
-          </h1>
+            <span>AEGIS PLATFORM V19.5 // DYNAMIC COMMAND LAYER</span>
+          </motion.div>
+
+          {/* Large Title */}
+          <motion.h1 
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 80, damping: 12 } }
+            }}
+            className="text-[38px] sm:text-[68px] md:text-[85px] lg:text-[110px] font-heading font-extrabold tracking-tight leading-[0.95] text-white"
+          >
+            Cyber Operations<br />
+            <span className="bg-gradient-to-r from-cyber-blue via-cyber-purple to-cyber-orange bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(0,229,255,0.08)]">
+              Command Center
+            </span>
+          </motion.h1>
 
           {/* Subtitle */}
-          <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
-            Ingest firewalls and SSH server logs. Analyze compliance frameworks, generate automated incident triages, and chat with your infrastructure vector index using ChromaDB and OpenRouter.
-          </p>
+          <motion.p 
+            variants={{
+              hidden: { opacity: 0, y: 15 },
+              visible: { opacity: 1, y: 0 }
+            }}
+            className="text-xs sm:text-sm md:text-base text-muted-foreground max-w-3xl mx-auto font-mono uppercase leading-relaxed tracking-wider"
+          >
+            Transform security telemetry into active protection. Real-time geographical mappings, MITRE attack simulations, and autonomic SOAR playbooks unified in a glassmorphic cockpit.
+          </motion.p>
 
-          {/* Hero CTAs */}
-          <div className="flex items-center justify-center gap-3 pt-2">
+          {/* Active stats display */}
+          <motion.div 
+            variants={{
+              hidden: { opacity: 0, scale: 0.95 },
+              visible: { opacity: 1, scale: 1 }
+            }}
+            className="flex justify-center gap-8 py-3 text-left max-w-lg mx-auto border-y border-white/5 font-mono text-xs"
+          >
+            <div>
+              <span className="text-[9px] text-muted-foreground uppercase block">INGEST SPEED</span>
+              <span className="text-lg font-bold text-cyber-blue">{ingestRate} EV/SEC</span>
+            </div>
+            <div className="border-r border-white/5" />
+            <div>
+              <span className="text-[9px] text-muted-foreground uppercase block">THREATS DEACTIVATED</span>
+              <span className="text-lg font-bold text-cyber-green">{threatsPrevented.toLocaleString()}</span>
+            </div>
+            <div className="border-r border-white/5" />
+            <div>
+              <span className="text-[9px] text-muted-foreground uppercase block">COMPLIANCE STATE</span>
+              <span className="text-lg font-bold text-cyber-orange">100% AUDITED</span>
+            </div>
+          </motion.div>
+
+          {/* Call-to-actions */}
+          <motion.div 
+            variants={{
+              hidden: { opacity: 0, y: 10 },
+              visible: { opacity: 1, y: 0 }
+            }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2"
+          >
             <Link 
-              href="/sign-up" 
-              className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold text-xs rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5 border border-primary/20 shadow-[0_0_20px_rgba(6,182,212,0.1)]"
+              href="/overview"
+              className="w-full sm:w-auto px-8 py-4 bg-cyber-blue text-background font-bold text-xs rounded-lg shadow-[0_0_30px_rgba(0,229,255,0.2)] hover:shadow-[0_0_40px_rgba(0,229,255,0.4)] transition-all duration-300 hover:scale-[1.01] flex items-center justify-center gap-2 font-mono uppercase tracking-wider"
             >
-              Deploy Free Cluster
-              <ArrowRight className="w-3.5 h-3.5" />
+              LAUNCH SOC WORKSTATION
+              <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link 
-              href="/overview" 
-              className="px-5 py-2.5 bg-secondary/50 text-foreground border border-border hover:bg-secondary transition-colors font-semibold text-xs rounded-lg flex items-center gap-1.5"
+            <button 
+              onClick={() => setIsDemoOpen(true)}
+              className="w-full sm:w-auto px-8 py-4 bg-secondary/50 hover:bg-secondary text-white border border-border transition-all duration-300 font-bold text-xs rounded-lg flex items-center justify-center gap-2 font-mono uppercase tracking-wider"
             >
-              <Terminal className="w-3.5 h-3.5 text-cyber-blue" />
-              Launch Console Demo
-            </Link>
-          </div>
-        </div>
+              <Play className="w-4 h-4 fill-white text-white" />
+              PLAY SIMULATION
+            </button>
+          </motion.div>
+        </motion.div>
 
-        {/* Live Metrics Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-3xl mx-auto mt-10 p-3 bg-card/30 border border-border rounded-xl backdrop-blur-xs">
-          <div className="p-3 text-center border-r border-border/40">
-            <p className="text-[10px] uppercase font-mono text-muted-foreground tracking-wider">Threats Analyzed</p>
-            <p className="text-lg md:text-xl font-bold font-mono text-cyber-red mt-1 transition-all duration-300">
-              {formatNumber(threatsCount)}
-            </p>
+        {/* Interactive Workspace Mockups Showcase */}
+        <section className="space-y-6">
+          <div className="text-center space-y-1.5">
+            <h2 className="text-lg font-mono font-bold tracking-widest uppercase text-white">SYSTEM CONSOLE WORKSPACES</h2>
+            <p className="text-[10px] text-muted-foreground font-mono uppercase">Select a cockpit workstation to preview operational telemetry.</p>
           </div>
-          <div className="p-3 text-center md:border-r border-border/40">
-            <p className="text-[10px] uppercase font-mono text-muted-foreground tracking-wider">Logs Processed</p>
-            <p className="text-lg md:text-xl font-bold font-mono text-cyber-blue mt-1">
-              {formatNumber(logsCount)}
-            </p>
-          </div>
-          <div className="col-span-2 md:col-span-1 p-3 text-center">
-            <p className="text-[10px] uppercase font-mono text-muted-foreground tracking-wider">Compliance Audits</p>
-            <p className="text-lg md:text-xl font-bold font-mono text-cyber-green mt-1 flex items-center justify-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-cyber-green animate-ping" />
-              100% SECURE
-            </p>
-          </div>
-        </div>
 
-        {/* YC Styled Interactive Dashboard Screenshot Mockup */}
-        <section id="mockup" className="mt-12 max-w-5xl mx-auto relative group">
-          {/* Glow backdrop behind screen */}
-          <div className="absolute inset-0 bg-cyber-blue/10 rounded-2xl blur-[50px] opacity-60 group-hover:opacity-85 transition-opacity pointer-events-none" />
-
-          {/* Browser Container */}
-          <div className="relative rounded-2xl border border-border/80 bg-background/85 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col h-[480px]">
-            {/* Browser top-bar */}
-            <div className="h-10 border-b border-border bg-card/60 px-4 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-cyber-red/60" />
-                <span className="w-2.5 h-2.5 rounded-full bg-cyber-orange/60" />
-                <span className="w-2.5 h-2.5 rounded-full bg-cyber-green/60" />
-              </div>
-              <div className="bg-background/80 border border-border/60 text-[9px] font-mono text-muted-foreground px-10 py-1.5 rounded-md truncate max-w-xs md:max-w-md">
-                https://aegis-soc.com/dashboard/overview (Alpha Security Corp)
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyber-green animate-pulse" />
-                <span className="text-[9px] font-mono text-cyber-green">INGEST ACTIVE</span>
-              </div>
+          <div className="max-w-5xl mx-auto space-y-4">
+            {/* Tabs */}
+            <div className="flex justify-center gap-2">
+              <button 
+                onClick={() => setActiveWorkspace("map")}
+                className={`px-4 py-2 border rounded-lg text-xs font-mono transition-all duration-200 ${
+                  activeWorkspace === "map" 
+                    ? "bg-cyber-blue/10 border-cyber-blue/30 text-cyber-blue shadow-[0_0_15px_rgba(0,229,255,0.05)]" 
+                    : "border-white/5 text-muted-foreground hover:text-white"
+                }`}
+              >
+                GEOGRAPHICAL THREAT MAP
+              </button>
+              <button 
+                onClick={() => setActiveWorkspace("sim")}
+                className={`px-4 py-2 border rounded-lg text-xs font-mono transition-all duration-200 ${
+                  activeWorkspace === "sim" 
+                    ? "bg-cyber-purple/10 border-cyber-purple/30 text-cyber-purple shadow-[0_0_15px_rgba(139,92,246,0.05)]" 
+                    : "border-white/5 text-muted-foreground hover:text-white"
+                }`}
+              >
+                ATTACK RANGE SIMULATOR
+              </button>
+              <button 
+                onClick={() => setActiveWorkspace("copilot")}
+                className={`px-4 py-2 border rounded-lg text-xs font-mono transition-all duration-200 ${
+                  activeWorkspace === "copilot" 
+                    ? "bg-cyber-green/10 border-cyber-green/30 text-cyber-green shadow-[0_0_15px_rgba(0,255,136,0.05)]" 
+                    : "border-white/5 text-muted-foreground hover:text-white"
+                }`}
+              >
+                SECURITY COPILOT RAG AI
+              </button>
             </div>
 
-            {/* Dashboard Content area */}
-            <div className="flex-1 flex overflow-hidden text-xs">
-              {/* Mini Sidebar */}
-              <aside className="w-44 border-r border-border bg-card/20 p-3 hidden sm:flex flex-col gap-2 shrink-0 select-none">
-                <div className="flex items-center gap-1.5 px-2 py-1 mb-2">
-                  <Shield className="w-3.5 h-3.5 text-cyber-blue" />
-                  <span className="font-semibold text-[10px] tracking-widest text-foreground">AEGIS_SOC</span>
+            {/* Screen Container */}
+            <div className="relative rounded-xl border border-white/5 bg-[#07111f]/40 backdrop-blur-md overflow-hidden min-h-[400px] shadow-2xl p-4 md:p-6 flex flex-col justify-between">
+              <div className="radar-sweep-effect absolute top-[-50%] left-[-50%] opacity-40 pointer-events-none" />
+              
+              {/* Header inside mock */}
+              <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4 shrink-0 font-mono text-[9px] text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-cyber-blue animate-ping" />
+                  <span className="text-white font-bold uppercase">CONSOLE::{activeWorkspace.toUpperCase()}</span>
                 </div>
-                <div className="space-y-1">
-                  <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[10px] font-medium transition-colors cursor-pointer ${activeTab === "threats" ? "bg-cyber-blue/10 text-cyber-blue border border-cyber-blue/20" : "text-muted-foreground hover:bg-secondary/40"}`} onClick={() => setActiveTab("threats")}>
-                    <Activity className="w-3 h-3" /> SOC Overview
-                  </div>
-                  <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[10px] font-medium transition-colors cursor-pointer ${activeTab === "chat" ? "bg-cyber-blue/10 text-cyber-blue border border-cyber-blue/20" : "text-muted-foreground hover:bg-secondary/40"}`} onClick={() => setActiveTab("chat")}>
-                    <MessageSquare className="w-3 h-3" /> Security AI Chat
-                  </div>
-                  <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[10px] font-medium transition-colors cursor-pointer ${activeTab === "compliance" ? "bg-cyber-blue/10 text-cyber-blue border border-cyber-blue/20" : "text-muted-foreground hover:bg-secondary/40"}`} onClick={() => setActiveTab("compliance")}>
-                    <CheckCircle2 className="w-3 h-3" /> Compliance Check
-                  </div>
-                </div>
-                <div className="mt-auto p-2 bg-background/50 border border-border rounded-lg text-[9px] text-muted-foreground">
-                  <span className="font-semibold block text-foreground">Active Tenant:</span>
-                  org_alpha_systems
-                </div>
-              </aside>
+                <span>STATUS: MOCKED SYSTEM LINK</span>
+              </div>
 
-              {/* Mini Main Panel */}
-              <main className="flex-1 p-4 bg-background/20 overflow-y-auto space-y-4">
-                {activeTab === "threats" && (
-                  <div className="space-y-4 animate-fadeIn">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-bold text-foreground text-sm">Security Terminal Controls</h4>
-                        <p className="text-[10px] text-muted-foreground">Threat tracing and multi-tenant firewall monitoring.</p>
+              {/* Mock Content */}
+              <div className="flex-1 flex flex-col justify-center">
+                <AnimatePresence mode="wait">
+                  {activeWorkspace === "map" && (
+                    <motion.div
+                      key="map"
+                      initial={{ opacity: 0, x: -15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 15 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="grid md:grid-cols-4 gap-4 flex-1 items-center text-xs"
+                    >
+                      {/* Left stats */}
+                      <div className="space-y-4 font-mono text-[10px] md:col-span-1 bg-black/30 p-4 border border-white/5 rounded-lg">
+                        <span className="text-muted-foreground font-bold tracking-widest block uppercase border-b border-white/5 pb-1 mb-2">GEOLOCATION INDEX</span>
+                        <div className="space-y-1">
+                          <div className="flex justify-between"><span>RUSSIAN_FEDERATION</span><span className="text-cyber-red">92%</span></div>
+                          <div className="flex justify-between"><span>PEOPLES_REP_CHINA</span><span className="text-cyber-orange">84%</span></div>
+                          <div className="flex justify-between"><span>NORTH_KOREA</span><span className="text-cyber-orange">78%</span></div>
+                          <div className="flex justify-between"><span>UNITED_STATES</span><span className="text-cyber-blue">45%</span></div>
+                        </div>
                       </div>
-                      <Badge className="bg-cyber-red/10 border border-cyber-red/30 text-cyber-red text-[8px] font-mono animate-pulse">
-                        3 ALERT CRITICAL
-                      </Badge>
-                    </div>
 
-                    {/* KPI row */}
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="p-2 bg-cyber-red/5 border border-cyber-red/20 rounded-lg">
-                        <span className="text-[8px] font-mono text-cyber-red uppercase block">Intrusions</span>
-                        <span className="text-sm font-bold font-mono text-cyber-red">3 Active</span>
-                      </div>
-                      <div className="p-2 bg-cyber-blue/5 border border-cyber-blue/20 rounded-lg">
-                        <span className="text-[8px] font-mono text-cyber-blue uppercase block">Ingest Rate</span>
-                        <span className="text-sm font-bold font-mono text-cyber-blue">1,489 /s</span>
-                      </div>
-                      <div className="p-2 bg-cyber-green/5 border border-cyber-green/20 rounded-lg">
-                        <span className="text-[8px] font-mono text-cyber-green uppercase block">SOC2 Auditing</span>
-                        <span className="text-sm font-bold font-mono text-cyber-green">94.8% Pass</span>
-                      </div>
-                    </div>
-
-                    {/* Threat Map and terminal */}
-                    <div className="grid md:grid-cols-5 gap-3">
-                      {/* SVG Mini attack map */}
-                      <div className="md:col-span-3 border border-border rounded-lg bg-black/40 p-2 flex flex-col items-center justify-center min-h-[140px] relative">
-                        <span className="text-[7px] font-mono text-muted-foreground absolute top-1.5 left-2">ATTACK VECTORS SCANNER</span>
-                        <svg viewBox="0 0 400 150" className="w-full h-full text-muted-foreground/20 p-2">
-                          <circle cx="200" cy="75" r="40" fill="none" stroke="rgba(6,182,212,0.15)" strokeDasharray="3,3" />
-                          <circle cx="200" cy="75" r="5" className="fill-cyber-blue animate-ping" />
-                          {/* Attack vector lines */}
-                          <line x1="80" y1="30" x2="200" y2="75" stroke="var(--cyber-red)" strokeWidth="1" strokeDasharray="2,2" />
-                          <line x1="320" y1="120" x2="200" y2="75" stroke="var(--cyber-orange)" strokeWidth="1" />
-                          {/* Pulses */}
-                          <circle cx="80" cy="30" r="3" className="fill-cyber-red" />
-                          <circle cx="320" cy="120" r="3" className="fill-cyber-orange" />
+                      {/* Center Map (SVG World map mock) */}
+                      <div className="md:col-span-3 h-[240px] flex items-center justify-center relative bg-black/40 border border-white/5 rounded-lg overflow-hidden p-2">
+                        <svg viewBox="0 0 600 240" className="w-full h-full text-white/5">
+                          <rect width="100%" height="100%" fill="transparent" />
+                          {/* Grid vectors */}
+                          <path d="M 0,60 L 600,60 M 0,120 L 600,120 M 0,180 L 600,180 M 150,0 L 150,240 M 300,0 L 300,240 M 450,0 L 450,240" stroke="rgba(0, 229, 255, 0.02)" strokeWidth="0.5" />
+                          {/* Simulated continents outline */}
+                          <path d="M 50,80 Q 80,60 120,70 T 180,90 T 220,130 T 200,180 Z M 320,60 Q 380,40 440,60 T 520,100 T 500,160 T 420,140 Z" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                          
+                          {/* Origin -> Target arcs */}
+                          <path d="M 100,80 Q 200,30 350,110" fill="none" stroke="var(--cyber-red)" strokeWidth="1.5" strokeDasharray="4,4" />
+                          <path d="M 460,90 Q 320,20 120,70" fill="none" stroke="var(--cyber-orange)" strokeWidth="1" />
+                          
+                          {/* Marker pins */}
+                          <circle cx="100" cy="80" r="3" fill="var(--cyber-red)" />
+                          <circle cx="350" cy="110" r="4" fill="var(--cyber-blue)" />
+                          <circle cx="350" cy="110" r="8" fill="none" stroke="var(--cyber-blue)" strokeWidth="0.5" className="animate-ping" style={{ animationDuration: "2s" }} />
+                          <circle cx="460" cy="90" r="3" fill="var(--cyber-orange)" />
+                          <circle cx="120" cy="70" r="4" fill="var(--cyber-blue)" />
                         </svg>
-                      </div>
-                      
-                      {/* Terminal log */}
-                      <div className="md:col-span-2 border border-border rounded-lg bg-black/50 p-2 font-mono text-[8px] text-cyber-green overflow-hidden space-y-1">
-                        <div className="text-muted-foreground">[10:50:18] INGEST STAGE ACTIVE</div>
-                        <div className="text-cyber-red truncate">[CRIT] SQL Inject block: username=admin&apos; OR &apos;1&apos;=&apos;1</div>
-                        <div className="text-cyber-orange truncate">[WARN] SSH Failure from 192.168.1.104</div>
-                        <div className="text-cyber-blue truncate">[INFO] Port sweep complete (Stage node)</div>
-                        <div className="text-muted-foreground/50 truncate">&gt; listening for B2B logs...</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === "chat" && (
-                  <div className="space-y-3 animate-fadeIn">
-                    <div className="flex items-center gap-2 border-b border-border pb-2">
-                      <Bot className="w-4 h-4 text-cyber-blue" />
-                      <div>
-                        <h4 className="font-semibold text-foreground text-[11px]">AI Log Advisor (RAG Agent)</h4>
-                        <p className="text-[8px] text-muted-foreground">Ask questions indexing ChromaDB & LangChain.</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 max-h-[220px] overflow-y-auto">
-                      <div className="flex justify-start">
-                        <div className="bg-card border border-border p-2 rounded-lg max-w-[90%] text-[10px] text-muted-foreground leading-relaxed">
-                          Ask me anything about active anomalies. For example: <span className="text-cyber-blue font-mono">&quot;Are we compliant with SOC2?&quot;</span>
+                        <div className="absolute bottom-2 right-2 bg-[#0c0520]/90 border border-white/5 rounded px-2 py-0.5 font-mono text-[8px] text-muted-foreground uppercase flex items-center gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-cyber-red animate-ping" />
+                          THREAT_INBOUND: DE_PORT_SCAN
                         </div>
                       </div>
-                      
-                      <div className="flex justify-end">
-                        <div className="bg-primary text-primary-foreground p-2 rounded-lg text-[10px]">
-                          Are we compliant with SOC2?
-                        </div>
-                      </div>
+                    </motion.div>
+                  )}
 
-                      <div className="flex justify-start">
-                        <div className="bg-card border border-border p-2 rounded-lg max-w-[90%] text-[10px] space-y-1.5">
-                          <p className="text-foreground">ChromaDB matched compliance rules. Score is <span className="text-cyber-blue font-semibold">94.8%</span>.</p>
-                          <p className="text-[9px]">**Failed control:** **SEC-06** - Staging server node lacks HIPS auditing software.</p>
-                          <div className="pt-1.5 border-t border-border/40 text-[8px] text-muted-foreground flex gap-1 font-mono">
-                            <span className="bg-secondary px-1 rounded">framework_soc2.json</span>
-                            <span className="bg-secondary px-1 rounded">prisma://compliance/SEC-06</span>
+                  {activeWorkspace === "sim" && (
+                    <motion.div
+                      key="sim"
+                      initial={{ opacity: 0, x: -15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 15 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="grid md:grid-cols-4 gap-4 flex-1 items-center text-xs"
+                    >
+                      {/* Left stats */}
+                      <div className="space-y-4 font-mono text-[10px] md:col-span-1 bg-black/30 p-4 border border-white/5 rounded-lg">
+                        <span className="text-muted-foreground font-bold tracking-widest block uppercase border-b border-white/5 pb-1 mb-2">SIMULATION LAB</span>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyber-red" />
+                            <span>APT28_SQL_INJECTION</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyber-orange" />
+                            <span>SSH_DICTIONARY_ATTACK</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-muted-foreground/60">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/10" />
+                            <span>K8S_KUBELET_EXPLOIT</span>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="p-2 border-t border-border flex gap-2">
-                      <Input placeholder="Type query (e.g. show SSH logins)..." readOnly className="h-7 text-[9px] bg-background/50 border-border" />
-                      <Button size="sm" className="h-7 px-2.5 bg-primary text-primary-foreground text-[9px]">Send</Button>
-                    </div>
-                  </div>
+                      {/* Center visual range panel */}
+                      <div className="md:col-span-3 h-[240px] flex flex-col justify-between bg-black/40 border border-white/5 rounded-lg p-4 font-mono">
+                        <div className="flex justify-between items-center text-[10px] border-b border-white/5 pb-2">
+                          <span className="text-cyber-purple font-bold">CYBER_RANGE_STATUS: SIMULATING_APT28</span>
+                          <Badge className="bg-cyber-red/10 text-cyber-red border border-cyber-red/30 py-0 text-[8px]">ACTIVE TARGET</Badge>
+                        </div>
+
+                        <div className="flex-1 flex flex-col justify-center gap-2 text-[9px] py-2">
+                          <div className="text-cyber-red flex items-center gap-1.5">
+                            <ChevronRight className="w-3 h-3 text-cyber-red" />
+                            <span>[ATTACK_INGRESS] INJECT: username=admin&apos; OR &apos;1&apos;=&apos;1 into api/v1/auth</span>
+                          </div>
+                          <div className="text-cyber-orange flex items-center gap-1.5">
+                            <ChevronRight className="w-3 h-3 text-cyber-orange" />
+                            <span>[DETECTION_ENGINE] Pattern matched: SQL_INJECTION threat rule. Severity: HIGH</span>
+                          </div>
+                          <div className="text-cyber-green flex items-center gap-1.5">
+                            <ChevronRight className="w-3 h-3 text-cyber-green" />
+                            <span>[SOAR_AUTOMATION] Execution: AUTONOMIC_CONTAIN_SQL_INJECT. IP blocked.</span>
+                          </div>
+                          <div className="text-muted-foreground flex items-center gap-1.5">
+                            <ChevronRight className="w-3 h-3 text-white/20" />
+                            <span>[AUDIT] Incident ticket INC-9483 generated automatically.</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 text-[9px] pt-2 border-t border-white/5">
+                          <span className="text-muted-foreground">EVENTS: 247</span>
+                          <span className="text-cyber-purple">STATE: THREAT CONVERSION TEST PASS</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeWorkspace === "copilot" && (
+                    <motion.div
+                      key="copilot"
+                      initial={{ opacity: 0, x: -15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 15 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="grid md:grid-cols-4 gap-4 flex-1 items-center text-xs"
+                    >
+                      {/* Left specs */}
+                      <div className="space-y-4 font-mono text-[10px] md:col-span-1 bg-black/30 p-4 border border-white/5 rounded-lg">
+                        <span className="text-muted-foreground font-bold tracking-widest block uppercase border-b border-white/5 pb-1 mb-2">AI COGNITIVE METRICS</span>
+                        <div className="space-y-1">
+                          <div className="flex justify-between"><span>VECTORS MATCHED</span><span className="text-cyber-green">1,482</span></div>
+                          <div className="flex justify-between"><span>RAG CONTEXT TOKENS</span><span className="text-cyber-blue">8.4k</span></div>
+                          <div className="flex justify-between"><span>LLM LATENCY</span><span className="text-cyber-blue">248ms</span></div>
+                        </div>
+                      </div>
+
+                      {/* Center Chat panel */}
+                      <div className="md:col-span-3 h-[240px] flex flex-col justify-between bg-black/40 border border-white/5 rounded-lg p-4 font-mono text-[10px] space-y-2">
+                        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                          {/* User message */}
+                          <div className="flex justify-end">
+                            <div className="bg-cyber-blue/10 border border-cyber-blue/20 text-cyber-blue p-2.5 rounded-lg max-w-[85%]">
+                              Are we vulnerable to CVE-2024-38077 based on log streams?
+                            </div>
+                          </div>
+
+                          {/* AI Response */}
+                          <div className="flex justify-start">
+                            <div className="bg-[#0b1727]/70 border border-white/5 p-2.5 rounded-lg max-w-[85%] space-y-2">
+                              <p className="text-foreground">Analysis of ingested log schemas from <span className="text-cyber-blue">k8s-node-cluster</span> shows 0 occurrences of RPC service buffer leaks associated with CVE-2024-38077.</p>
+                              <p className="text-cyber-green font-semibold flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-cyber-green" />
+                                COMPLIANCE CONFIRMED - NO CVE HITS
+                              </p>
+                              <div className="pt-2 border-t border-white/5 text-[8px] text-muted-foreground flex gap-2">
+                                <span>Matched chroma://cve_matrix_v2</span>
+                                <span>Audit: log_ingress_k8s.json</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-2 border-t border-white/5 shrink-0">
+                          <div className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-1.5 text-muted-foreground/50 text-[9px]">
+                            Ask Aegis Copilot (e.g. show compliance audit status)...
+                          </div>
+                          <Button size="sm" className="h-7 px-3 bg-cyber-blue text-background font-bold text-[9px]">SEND</Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Bottom link CTA */}
+              <div className="mt-4 border-t border-white/5 pt-3 shrink-0 flex flex-col sm:flex-row justify-between items-center gap-2 text-[10px] font-mono">
+                <span className="text-muted-foreground uppercase">TIGHT INTEGRATION WITH CLERK MULTI-TENANCY CORE</span>
+                <Link href="/overview" className="text-cyber-blue font-bold flex items-center gap-1 hover:underline">
+                  EXPLORE REAL CONSOLES <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Visual Pipeline Architecture flowchart */}
+        <section className="space-y-8 max-w-5xl mx-auto">
+          <div className="text-center space-y-1.5">
+            <h2 className="text-lg font-mono font-bold tracking-widest uppercase text-white">THE THREAT INGESTION PIPELINE</h2>
+            <p className="text-[10px] text-muted-foreground font-mono uppercase">Full end-to-end data lifecycle from collectors to automated resolution.</p>
+          </div>
+
+          <div className="grid md:grid-cols-5 gap-4 relative">
+            {/* Step 1 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.4, delay: 0 }}
+              className="p-4 bg-[#07111f]/30 border border-white/5 rounded-lg font-mono text-[10px] space-y-2 relative"
+            >
+              <div className="text-cyber-blue font-bold">01 // LOG INGESTION</div>
+              <p className="text-[9px] text-muted-foreground">API collectors ingest Docker, Wazuh, Syslog streams under isolated org schemas.</p>
+            </motion.div>
+            
+            {/* Step 2 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="p-4 bg-[#07111f]/30 border border-white/5 rounded-lg font-mono text-[10px] space-y-2 relative"
+            >
+              <div className="text-cyber-purple font-bold">02 // DETECT ENGINE</div>
+              <p className="text-[9px] text-muted-foreground">Threat events grouped by signature patterns, assigning severity matrix vectors.</p>
+            </motion.div>
+
+            {/* Step 3 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="p-4 bg-[#07111f]/30 border border-white/5 rounded-lg font-mono text-[10px] space-y-2 relative"
+            >
+              <div className="text-cyber-orange font-bold">03 // MITRE ATT&CK</div>
+              <p className="text-[9px] text-muted-foreground">Threats mapped to adversarial tactics. Auto-tagging dossier records.</p>
+            </motion.div>
+
+            {/* Step 4 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+              className="p-4 bg-[#07111f]/30 border border-white/5 rounded-lg font-mono text-[10px] space-y-2 relative"
+            >
+              <div className="text-cyber-red font-bold">04 // SOAR PLAYBOOK</div>
+              <p className="text-[9px] text-muted-foreground">Workflows trigger to contain threat. IPs blocked at edge firewall.</p>
+            </motion.div>
+
+            {/* Step 5 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.4, delay: 0.4 }}
+              className="p-4 bg-[#07111f]/30 border border-white/5 rounded-lg font-mono text-[10px] space-y-2 relative"
+            >
+              <div className="text-cyber-green font-bold">05 // COPILOT INDEX</div>
+              <p className="text-[9px] text-muted-foreground">Anomalies indexed in ChromaDB for fast retrieval during AI chats.</p>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Feature Grid highlighting Core Capabilities */}
+        <section className="space-y-10 max-w-5xl mx-auto">
+          <div className="text-center space-y-1.5">
+            <h2 className="text-lg font-mono font-bold tracking-widest uppercase text-white">COMMAND CENTER SPECIFICATIONS</h2>
+            <p className="text-[10px] text-muted-foreground font-mono uppercase">Designed to support Principal Security Operations Analysts.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Feature 1: Threat Hunting */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.5, delay: 0 }}
+              className="p-5 bg-card/40 rounded-xl border border-white/5 hover:border-cyber-blue/30 transition-all duration-300 shadow-md space-y-3"
+            >
+              <div className="p-2 bg-cyber-blue/10 rounded-lg text-cyber-blue w-fit">
+                <Globe className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-semibold text-white font-mono uppercase">Threat Hunting Workstation</h3>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Full-pane query workstation allowing custom queries, historical timelines, and threat dossiers mapping APT actor groups.
+              </p>
+            </motion.div>
+
+            {/* Feature 2: Attack Simulation */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+              className="p-5 bg-card/40 rounded-xl border border-white/5 hover:border-cyber-purple/30 transition-all duration-300 shadow-md space-y-3"
+            >
+              <div className="p-2 bg-cyber-purple/10 rounded-lg text-cyber-purple w-fit">
+                <Activity className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-semibold text-white font-mono uppercase">Attack Simulation Lab</h3>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Safely simulate Red-Team intrusions (MITRE Caldera protocols, Atomic Red Team) in a sandbox environment to test detection-to-response cycles.
+              </p>
+            </motion.div>
+
+            {/* Feature 3: Playbooks & SOAR */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="p-5 bg-card/40 rounded-xl border border-white/5 hover:border-cyber-orange/30 transition-all duration-300 shadow-md space-y-3"
+            >
+              <div className="p-2 bg-cyber-orange/10 rounded-lg text-cyber-orange w-fit">
+                <Cpu className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-semibold text-white font-mono uppercase">Autonomous SOAR Playbooks</h3>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Orchestrate node actions using logical flow builders. Implement incident containment immediately without human delay.
+              </p>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Interactive Terminal Call-to-action */}
+        <section className="max-w-4xl mx-auto space-y-6">
+          <div className="text-center space-y-1.5">
+            <h2 className="text-lg font-mono font-bold tracking-widest uppercase text-white">DIAGNOSTIC PORT CHECKS</h2>
+            <p className="text-[10px] text-muted-foreground font-mono uppercase">Run a simulated threat-hunt test on our virtual tenant core nodes.</p>
+          </div>
+
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: "-30px" }}
+            transition={{ duration: 0.5 }}
+            className="border border-white/10 rounded-xl bg-black/80 overflow-hidden shadow-2xl"
+          >
+            {/* Bar */}
+            <div className="h-9 border-b border-white/10 bg-card/40 px-4 flex items-center justify-between font-mono text-[9px] text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-cyber-red/60" />
+                <span className="w-2 h-2 rounded-full bg-cyber-orange/60" />
+                <span className="w-2 h-2 rounded-full bg-cyber-green/60" />
+              </div>
+              <span>aegis_diagnostic_terminal.sh</span>
+              <span>DEV_STAGE</span>
+            </div>
+
+            {/* Terminal Body */}
+            <div className="p-4 h-64 overflow-y-auto font-mono text-[10px] text-cyber-green bg-[#030712] space-y-2">
+              <div>{"// Press the button below to initiate diagnostic telemetry trace //"}</div>
+              {scanLogs.map((log, index) => (
+                <div key={index} className="animate-fadeIn">
+                  {log.startsWith("[!]") ? (
+                    <span className="text-cyber-red font-semibold">{log}</span>
+                  ) : log.startsWith("[+]") || log.startsWith("[SUCCESS]") ? (
+                    <span className="text-cyber-green font-semibold">{log}</span>
+                  ) : (
+                    <span className="text-muted-foreground">{log}</span>
+                  )}
+                </div>
+              ))}
+              <div ref={terminalBottomRef} />
+            </div>
+
+            {/* Terminal Controls */}
+            <div className="p-3 border-t border-white/10 bg-card/20 flex flex-col sm:flex-row justify-between items-center gap-3">
+              <span className="text-[9px] font-mono text-muted-foreground uppercase">
+                {scanStatus === "idle" && "READY TO TEST GEOLOC COLLECTOR NODES"}
+                {scanStatus === "running" && "EXECUTING PLAYBOOK AUTOMATIONS..."}
+                {scanStatus === "complete" && "DIAGNOSTIC TRACE PASSED SUCCESSFULLY"}
+              </span>
+              <div className="flex gap-2">
+                {scanStatus === "idle" && (
+                  <Button 
+                    size="sm"
+                    onClick={startDiagnosticScan}
+                    className="h-8 px-4 bg-cyber-blue text-background font-bold text-[10px] font-mono tracking-wider"
+                  >
+                    RUN AEGIS DIAGNOSTIC
+                  </Button>
                 )}
-
-                {activeTab === "compliance" && (
-                  <div className="space-y-3 animate-fadeIn">
-                    <div className="flex items-center justify-between border-b border-border pb-2">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-cyber-green" />
-                        <h4 className="font-semibold text-foreground text-[11px]">SaaS Framework Auditing</h4>
-                      </div>
-                      <Badge className="bg-cyber-green/10 text-cyber-green border-cyber-green/20 text-[8px] font-mono">94.8% SCORED</Badge>
-                    </div>
-
-                    <div className="border border-border rounded-lg bg-black/20 overflow-hidden">
-                      <div className="grid grid-cols-4 bg-background/40 p-1.5 font-semibold text-[8px] text-muted-foreground uppercase tracking-wider border-b border-border">
-                        <div>ID</div>
-                        <div className="col-span-2">Policy Target</div>
-                        <div>Status</div>
-                      </div>
-                      <div className="divide-y divide-border/50 text-[9px] font-mono">
-                        <div className="grid grid-cols-4 p-1.5">
-                          <div className="text-muted-foreground">SEC-01</div>
-                          <div className="col-span-2 text-foreground truncate">Clerk MFA Enforced</div>
-                          <div className="text-cyber-green">Compliant</div>
-                        </div>
-                        <div className="grid grid-cols-4 p-1.5">
-                          <div className="text-muted-foreground">SEC-02</div>
-                          <div className="col-span-2 text-foreground truncate">Neon SSL Configured</div>
-                          <div className="text-cyber-green">Compliant</div>
-                        </div>
-                        <div className="grid grid-cols-4 p-1.5">
-                          <div className="text-muted-foreground">SEC-06</div>
-                          <div className="col-span-2 text-foreground truncate">Host HIPS active</div>
-                          <div className="text-cyber-red">Failed</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                {scanStatus === "running" && (
+                  <Button 
+                    size="sm"
+                    disabled
+                    className="h-8 px-4 bg-cyber-orange/20 text-cyber-orange border border-cyber-orange/30 font-bold text-[10px] font-mono tracking-wider animate-pulse"
+                  >
+                    TRACING CYBER VECTORS...
+                  </Button>
                 )}
-              </main>
+                {scanStatus === "complete" && (
+                  <Link 
+                    href="/overview"
+                    className="inline-flex h-8 items-center justify-center rounded px-4 bg-cyber-green text-background font-bold text-[10px] font-mono tracking-wider shadow-[0_0_15px_rgba(0,255,136,0.2)] hover:opacity-90"
+                  >
+                    ENTER COMMAND PORTAL
+                  </Link>
+                )}
+              </div>
             </div>
-          </div>
+          </motion.div>
         </section>
 
-        {/* Trust & Badges Row */}
-        <section id="trust" className="mt-12 text-center space-y-4">
-          <p className="text-[10px] uppercase font-semibold font-mono tracking-widest text-muted-foreground">Compliance Frameworks Secured</p>
-          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card/40 backdrop-blur-xs shadow-[0_0_12px_rgba(255,255,255,0.01)] hover:border-cyber-blue/30 transition-colors">
-              <ShieldCheck className="w-4 h-4 text-cyber-blue" />
-              <span className="font-mono text-[10px] font-bold text-foreground">SOC2 TYPE II</span>
+        {/* Compliance Certificates Badges Row */}
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="text-center space-y-4"
+        >
+          <p className="text-[10px] uppercase font-semibold font-mono tracking-widest text-muted-foreground">Certified SaaS Framework Scopes</p>
+          <div className="flex flex-wrap items-center justify-center gap-6">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/5 bg-card/25 text-xs text-muted-foreground">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyber-blue" />
+              <span className="font-mono text-[10px] font-bold uppercase text-white">SOC2 TYPE II Compliance</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card/40 backdrop-blur-xs shadow-[0_0_12px_rgba(255,255,255,0.01)] hover:border-cyber-green/30 transition-colors">
-              <Lock className="w-4 h-4 text-cyber-green" />
-              <span className="font-mono text-[10px] font-bold text-foreground">ISO 27001</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/5 bg-card/25 text-xs text-muted-foreground">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyber-green" />
+              <span className="font-mono text-[10px] font-bold uppercase text-white">ISO 27001 Certified</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card/40 backdrop-blur-xs shadow-[0_0_12px_rgba(255,255,255,0.01)] hover:border-cyber-orange/30 transition-colors">
-              <Globe className="w-4 h-4 text-cyber-orange" />
-              <span className="font-mono text-[10px] font-bold text-foreground">GDPR PRIVACY</span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card/40 backdrop-blur-xs shadow-[0_0_12px_rgba(255,255,255,0.01)] hover:border-cyber-red/30 transition-colors">
-              <ShieldAlert className="w-4 h-4 text-cyber-red" />
-              <span className="font-mono text-[10px] font-bold text-foreground">OWASP TOP 10</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Features & SaaS Core Capabilities */}
-        <section id="features" className="mt-20 space-y-10">
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">YC-Architected Platform Security</h2>
-            <p className="text-xs text-muted-foreground max-w-xl mx-auto">
-              Engineered for rapid log analytics, compliance verification, and agentic RAG reasoning.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
-            {/* Feature 1 */}
-            <div className="p-5 bg-card/50 rounded-xl border border-border hover:border-cyber-blue/30 transition-all duration-300 shadow-md">
-              <div className="p-2 bg-cyber-blue/10 rounded-lg text-cyber-blue w-fit mb-4">
-                <Layers className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-semibold mb-1 text-foreground">Isolated Multi-Tenancy</h3>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Logical schema-level database separation configured with Prisma and Clerk organization scopes.
-              </p>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="p-5 bg-card/50 rounded-xl border border-border hover:border-cyber-green/30 transition-all duration-300 shadow-md">
-              <div className="p-2 bg-cyber-green/10 rounded-lg text-cyber-green w-fit mb-4">
-                <Server className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-semibold mb-1 text-foreground">FastAPI Daemon Ingestion</h3>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Python log parser checking syntax patterns, scanning vulnerabilities, and storing indices.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="p-5 bg-card/50 rounded-xl border border-border hover:border-cyber-orange/30 transition-all duration-300 shadow-md">
-              <div className="p-2 bg-cyber-orange/10 rounded-lg text-cyber-orange w-fit mb-4">
-                <MessageSquare className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-semibold mb-1 text-foreground">ChromaDB Vector Search</h3>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                LangChain agent chains referencing security indices to resolve incidents with LLM advisors.
-              </p>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/5 bg-card/25 text-xs text-muted-foreground">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyber-orange" />
+              <span className="font-mono text-[10px] font-bold uppercase text-white">GDPR Privacy Compliant</span>
             </div>
           </div>
-        </section>
-
-        {/* Pricing Tiers (Sleek YC Pricing Model) */}
-        <section id="pricing" className="mt-20 space-y-10">
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">Flexible, Transparent Pricing</h2>
-            <p className="text-xs text-muted-foreground max-w-xl mx-auto">
-              Scale up your ingestion capacities as your network assets grow.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {/* Free Tier */}
-            <div className="p-6 bg-card/40 rounded-xl border border-border space-y-5 flex flex-col justify-between hover:border-border/80 transition-colors">
-              <div className="space-y-3">
-                <Badge variant="outline" className="text-[9px] font-mono uppercase tracking-wider">Hacker</Badge>
-                <h3 className="text-lg font-bold">Free</h3>
-                <p className="text-[11px] text-muted-foreground">Basic SSH/Auth log checks for localized developers.</p>
-                <div className="text-2xl font-extrabold font-mono">$0</div>
-                <ul className="text-[11px] space-y-2 border-t border-border/60 pt-3 text-muted-foreground">
-                  <li className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyber-blue" />
-                    1 Organization Tenant
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyber-blue" />
-                    1 GB Monthly Log Ingestion
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyber-blue" />
-                    Local CLI Audits Only
-                  </li>
-                </ul>
-              </div>
-              <Link 
-                href="/sign-up" 
-                className="w-full py-2 bg-secondary text-foreground text-center font-medium rounded-lg text-xs border border-border hover:bg-secondary/80 transition-colors"
-              >
-                Sign Up Free
-              </Link>
-            </div>
-
-            {/* Pro Tier */}
-            <div className="p-6 bg-card rounded-xl border border-cyber-blue/30 relative space-y-5 flex flex-col justify-between shadow-[0_4px_25px_rgba(6,182,212,0.05)]">
-              <div className="absolute top-0 right-6 -translate-y-1/2 bg-cyber-blue text-background text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
-                Startup Focus
-              </div>
-              <div className="space-y-3">
-                <Badge className="bg-cyber-blue/10 text-cyber-blue hover:bg-cyber-blue/10 border-0 text-[9px] font-mono uppercase tracking-wider">Operator</Badge>
-                <h3 className="text-lg font-bold">Pro</h3>
-                <p className="text-[11px] text-muted-foreground">Complete automated auditing, incident queues, and AI advisories.</p>
-                <div className="text-2xl font-extrabold font-mono">$49<span className="text-xs font-normal text-muted-foreground">/mo</span></div>
-                <ul className="text-[11px] space-y-2 border-t border-border/60 pt-3 text-muted-foreground">
-                  <li className="flex items-center gap-1.5 text-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyber-blue" />
-                    Up to 5 Tenant Orgs
-                  </li>
-                  <li className="flex items-center gap-1.5 text-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyber-blue" />
-                    50 GB Monthly Log Ingestion
-                  </li>
-                  <li className="flex items-center gap-1.5 text-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyber-blue" />
-                    AI Incident Summarizer
-                  </li>
-                  <li className="flex items-center gap-1.5 text-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyber-blue" />
-                    Standard LangChain Chat
-                  </li>
-                </ul>
-              </div>
-              <Link 
-                href="/sign-up" 
-                className="w-full py-2 bg-primary text-primary-foreground text-center font-medium rounded-lg text-xs hover:opacity-90 transition-opacity border border-primary/20 shadow-[0_0_12px_rgba(6,182,212,0.15)]"
-              >
-                Start 14-Day Trial
-              </Link>
-            </div>
-
-            {/* Enterprise Tier */}
-            <div className="p-6 bg-card/40 rounded-xl border border-border space-y-5 flex flex-col justify-between hover:border-border/80 transition-colors">
-              <div className="space-y-3">
-                <Badge variant="outline" className="text-[9px] font-mono uppercase tracking-wider">Enterprise</Badge>
-                <h3 className="text-lg font-bold">Enterprise</h3>
-                <p className="text-[11px] text-muted-foreground">SLA-guaranteed ingestion, compliance mappings, and custom models.</p>
-                <div className="text-2xl font-extrabold font-mono">Custom</div>
-                <ul className="text-[11px] space-y-2 border-t border-border/60 pt-3 text-muted-foreground">
-                  <li className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyber-green" />
-                    Unlimited Multi-Tenancy
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyber-green" />
-                    Custom Ingest Quotas
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyber-green" />
-                    ChromaDB Vector Index Syncing
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyber-green" />
-                    24/7 Priority Support
-                  </li>
-                </ul>
-              </div>
-              <Button 
-                variant="outline"
-                className="w-full py-2 bg-secondary text-foreground font-medium rounded-lg text-xs border border-border hover:bg-secondary/80 transition-colors"
-                onClick={() => alert("Redirecting to sales team...")}
-              >
-                Contact Sales
-              </Button>
-            </div>
-          </div>
-        </section>
+        </motion.section>
       </main>
 
+      {/* Watch Demo Modal */}
+      {isDemoOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="relative w-full max-w-4xl bg-card border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/5 bg-[#030712]">
+              <span className="font-mono text-xs font-bold text-gray-300 uppercase">Aegis SOC Command Center Simulation</span>
+              <button 
+                onClick={() => setIsDemoOpen(false)}
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {/* Video Player */}
+            <div className="relative aspect-video bg-black flex items-center justify-center">
+              <video
+                autoPlay
+                controls
+                className="w-full h-full object-cover"
+              >
+                <source src="https://cdn.pixabay.com/video/2023/10/20/185790-876356614_large.mp4" type="video/mp4" />
+              </video>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
-      <footer className="border-t border-border mt-20 bg-card/20 py-8">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+      <footer className="relative border-t border-white/5 bg-card/20 py-8 z-20">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] font-mono text-muted-foreground">
           <div className="flex items-center gap-2">
-            <span className="font-semibold tracking-wider text-foreground">AEGIS<span className="text-cyber-blue">SOC</span></span>
+            <span className="font-semibold tracking-wider text-white">AEGIS<span className="text-cyber-blue">SOC</span></span>
             <span>&copy; {new Date().getFullYear()} Aegis Systems Inc.</span>
           </div>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-foreground transition-colors">Platform Status</a>
+            <a href="#" className="hover:text-white transition-colors">PRIVACY_POLICY</a>
+            <a href="#" className="hover:text-white transition-colors">TERMS_OF_SERVICE</a>
+            <a href="#" className="hover:text-white transition-colors">SYSTEM_STATUS</a>
           </div>
         </div>
       </footer>
     </div>
   );
 }
+
+
