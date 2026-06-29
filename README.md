@@ -71,6 +71,22 @@ The platform combines modern SOC workflows with AI-driven analysis, MITRE ATT&CK
 
 ---
 
+## Screenshots
+
+### SOC Command Center
+Coming Soon
+
+### Threat Hunting Console
+Coming Soon
+
+### AI Security Copilot
+Coming Soon
+
+### Attack Simulation Lab
+Coming Soon
+
+---
+
 ## Architecture
 
 Frontend:
@@ -116,6 +132,35 @@ Deployment:
 - Tenant Verification Middleware
 
 ---
+
+## Core Modules
+
+### SOC Command Center
+Real-time security operations dashboard with threat telemetry, live monitoring, and incident tracking.
+
+### Threat Intelligence
+Adversary tracking, MITRE ATT&CK mapping, IOC analysis, and threat enrichment.
+
+### Threat Hunting Console
+Custom AQL-based hunting engine supporting saved hunts, analytics, and timeline investigations.
+
+### Incident Response Hub
+Centralized incident management, triage workflows, case management, and evidence handling.
+
+### AI Security Copilot
+RAG-powered assistant capable of investigating incidents, querying uploaded documents, and providing security recommendations.
+
+### SOAR Automation
+Playbooks and automated response actions for containment and remediation workflows.
+
+### Compliance Center
+Security posture auditing against ISO 27001, CIS Benchmarks, OWASP Top 10, and GDPR.
+
+### Attack Simulation Lab
+Cyber range environment generating realistic telemetry for end-to-end detection and response validation.
+
+---
+
 
 ## Testing
 
